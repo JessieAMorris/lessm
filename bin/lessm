@@ -103,7 +103,7 @@
 		});
 	}).fail(function(errs) {
 		for(var i = 0; i < errs.length; i++) {
-			console.error(err[i].message, "\n\t", err[i].error);
+			console.error(errs[i].message, "\n\t", errs[i].error);
 		}
 
 		process.exit(1);
