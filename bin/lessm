@@ -1,0 +1,115 @@
+#!/usr/bin/env node
+(function() {
+	'use strict';
+
+	//Imports
+	var fs = require('fs');
+	var path = require('path');
+
+	var argv = require('optimist')
+		.demand(1)
+		.alias('o', 'output')
+		.alias('x', 'compress')
+		.usage('Usage: $0 [input.less [input2.less]] -o [output.css]')
+		.argv;
+
+	var p = require('jpromise');
+
+	var swig = require('swig');
+	swig.setDefaults({autoescape: false});
+
+	var less = require('less');
+
+
+	//Templates for compiling a nice little import LESS
+	var SWIG_TEMPLATE_FOLDER = path.join(path.dirname(module.filename), '../templates');
+	var LESS_TEMPLATE = path.join(SWIG_TEMPLATE_FOLDER, 'less.swig');
+
+	// A couple of lazy helper functions
+	function ifErr(msg, err, dfd){
+		if (err) {
+			if(dfd) {
+				dfd.reject({message: msg, error: err});
+			} else {
+				console.error(msg, ':\n\t', err);
+				process.exit(1);
+			}
+		}
+	}
+
+	function readFile(file, name) {
+		var msg = 'Error reading ' + file;
+		var dfd = new p();
+		var result;
+
+		fs.readFile(file, 'utf8', function(err, data) {
+			ifErr(msg, err, dfd);
+
+			if (name) {
+				result = {'name': name, 'data': data};
+			} else {
+				result = data;
+			}
+			dfd.resolve(result);
+		});
+
+		return dfd.promise();
+	}
+
+	// Load up some of the files and parse the paths we were passed
+	var templateDfd = readFile(LESS_TEMPLATE);
+
+	var xhrs = [];
+	var paths = [];
+	var filenames = [];
+
+	for(var i = 0; i < argv._.length; i++) {
+		var filename = argv._[i];
+
+		paths.push(path.dirname(filename));
+		filenames.push(path.basename(filename));
+
+		xhrs.push(readFile(argv._[i]));
+	}
+
+	var parser = new(less.Parser)({
+		paths: paths // Specify search paths for @import directives
+	});
+
+	p.when(templateDfd, xhrs).done(function(files) {
+		var template = files.shift();
+
+		// Make our generated less
+		var lessTemplate = swig.render(template, {'locals': {
+			'lesses' :  filenames
+		}});
+
+		parser.parse(lessTemplate, function (err, tree) {
+			ifErr("Couldn't parse the generated less file", err);
+
+			var opts = {};
+
+			if(argv.compress) {
+				opts.compress = true;
+			}
+
+			var css = tree.toCSS(opts);
+
+			if(argv.output) {
+				fs.writeFile(argv.output, css);
+			} else {
+				process.stdout.write(css);
+			}
+		});
+	}).fail(function(errs) {
+		for(var i = 0; i < errs.length; i++) {
+			console.error(err[i].message, "\n\t", err[i].error);
+		}
+
+		process.exit(1);
+	});
+})();
+
+// vim: set ft=javascript:
+// Thank you for doing ^^ this, Jeff, I love you always.
+

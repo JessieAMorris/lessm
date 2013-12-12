@@ -1,0 +1,21 @@
+{
+	"name": "lessm",
+	"version": "0.1.0",
+	"author": {
+		"name": "Jessie A. Morris",
+		"email": "jmorris@getjive.com"
+	},
+	"bin": {
+		"lessm": "./bin/lessm"
+	},
+	"dependencies": {
+		"jpromise": "*",
+		"swig": "*",
+		"less": "*",
+		"optimist": "*"
+	},
+	"files": [
+		"bin",
+		"templates"
+	]
+}
