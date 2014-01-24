@@ -11,7 +11,7 @@
 	"dependencies": {
 		"jpromise": "*",
 		"swig": "*",
-		"less": "1.5.1",
+		"less": "1.6.1",
 		"optimist": "*"
 	},
 	"files": [
